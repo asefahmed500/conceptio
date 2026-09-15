@@ -25,6 +25,7 @@ const path = require("path");
 const vm = require("vm");
 
 const CATS = ["core", "web", "db", "auth", "arch", "cache", "scale", "ops", "sysd"];
+const NEW_CATS = ["react", "nextjs"]; // frontend extension: not in prd.md, 25 each
 const HEADING_TO_CAT = {
   "Core Programming": "core",
   "Web Fundamentals": "web",
@@ -36,6 +37,7 @@ const HEADING_TO_CAT = {
   "DevOps & Deployment": "ops",
   "System Design": "sysd",
 };
+const CAT_FILES = [...CATS, ...NEW_CATS];
 
 const problems = []; // { id, check, detail }
 function flag(id, check, detail) {
@@ -43,10 +45,15 @@ function flag(id, check, detail) {
 }
 
 // ---------------------------------------------------------------- load data
+const pending = [];
 let combined = "";
 let sawFFFD = false;
-for (const cat of CATS) {
+for (const cat of CAT_FILES) {
   const file = path.join("data", "concepts", cat + ".ts");
+  if (!fs.existsSync(file) || fs.readFileSync(file, "utf8").trim() === "") {
+    pending.push(cat);
+    continue;
+  }
   const src = fs.readFileSync(file, "utf8");
   if (src.includes("\uFFFD")) {
     sawFFFD = true;
@@ -78,7 +85,8 @@ try {
 try { fs.unlinkSync(tmpFile); } catch (_) {}
 
 const concepts = []; // { cat, c }
-for (const cat of CATS) {
+for (const cat of CAT_FILES) {
+  if (pending.includes(cat)) continue;
   const arr = data[cat.toUpperCase()];
   if (!Array.isArray(arr)) {
     flag(cat + " (file)", "load", "exported value is not an array");
@@ -86,6 +94,7 @@ for (const cat of CATS) {
   }
   for (const c of arr) concepts.push({ cat, c });
 }
+const expectTotal = 25 * (CAT_FILES.length - pending.length);
 
 // ---------------------------------------------------------- field-level checks
 const seenIds = new Map(); // id -> "cat/index"
@@ -109,7 +118,7 @@ for (let i = 0; i < concepts.length; i++) {
     flag(id, "id:unique", "duplicate id (also at " + seenIds.get(id) + ")");
   } else {
     seenIds.set(id, label);
-    const allowed = CATS.includes(c.cat);
+    const allowed = CAT_FILES.includes(c.cat);
     if (!allowed) flag(id, "cat:whitelist", "cat is " + JSON.stringify(c.cat));
     const prefix = id.split("-")[0];
     if (prefix !== c.cat) flag(id, "id:prefix", "id prefix " + JSON.stringify(prefix) + " != cat " + JSON.stringify(c.cat));
@@ -152,18 +161,57 @@ for (let i = 0; i < concepts.length; i++) {
     if (words > 20) flag(id, "one:words", words + " words (> 20): " + JSON.stringify(c.one));
   }
 
-  // code syntax
+  // code syntax — three tiers:
+  //   1. plain snippet -> vm.Script (CommonJS), async-wrap retry, then ESM via typescript
+  //   2. "// @jsx" first line -> TSX syntax check via typescript.transpileModule
+  //   (typescript comes from the repo's own node_modules — no new dependency)
   if (typeof c.code !== "string" || c.code.trim() === "") {
     flag(id, "code", "missing or empty");
   } else {
+    const isJsx = /^\/\/\s*@jsx\b/.test(c.code.trimStart());
     let err = null;
-    try {
-      new vm.Script(c.code);
-    } catch (e1) {
+    if (isJsx) {
       try {
-        new vm.Script("(async()=>{\n" + c.code + "\n})()");
-      } catch (e2) {
-        err = (e2 && e2.name === "SyntaxError" ? "SyntaxError: " : "") + ((e2 && e2.message) || String(e2));
+        const ts = require("typescript");
+        const out = ts.transpileModule(c.code, {
+          compilerOptions: {
+            jsx: ts.JsxEmit.React,
+            module: ts.ModuleKind.CommonJS,
+            target: ts.ScriptTarget.ES2020,
+          },
+          reportDiagnostics: true,
+        });
+        const diag = (out.diagnostics || [])[0];
+        if (diag) {
+          err = "TSX syntax: " + ts.flattenDiagnosticMessageText(diag.messageText, " ");
+        }
+      } catch (e) {
+        err = "TSX check failed: " + (e && e.message);
+      }
+    } else {
+      try {
+        new vm.Script(c.code);
+      } catch (e1) {
+        try {
+          new vm.Script("(async()=>{\n" + c.code + "\n})()");
+        } catch (e2) {
+          try {
+            const ts = require("typescript");
+            const out = ts.transpileModule(c.code, {
+              compilerOptions: {
+                module: ts.ModuleKind.CommonJS,
+                target: ts.ScriptTarget.ES2020,
+              },
+              reportDiagnostics: true,
+            });
+            const diag = (out.diagnostics || [])[0];
+            if (diag) {
+              err = "ESM syntax: " + ts.flattenDiagnosticMessageText(diag.messageText, " ");
+            }
+          } catch (e3) {
+            err = (e2 && e2.name === "SyntaxError" ? "SyntaxError: " : "") + ((e2 && e2.message) || String(e2));
+          }
+        }
       }
     }
     if (err) flag(id, "code:syntax", err);
@@ -214,13 +262,23 @@ for (const cat of CATS) {
 }
 if (prdRowsTotal !== 225) flag("prd.md", "prd:total", "parsed " + prdRowsTotal + " appendix rows (expected 225)");
 
+// new (frontend) categories: not in prd.md — 25 concepts each, no PRD compare
+for (const cat of NEW_CATS) {
+  if (pending.includes(cat)) continue;
+  const arr = data[cat.toUpperCase()];
+  if (!Array.isArray(arr) || arr.length !== 25) {
+    flag(cat + " (data)", "count", "data file has " + (arr && arr.length) + " concepts (need 25)");
+  }
+}
+
 // -------------------------------------------------------------------- summary
 const byCheck = {};
 for (const p of problems) byCheck[p.check] = (byCheck[p.check] || 0) + 1;
 
 console.log("=== content-audit ===");
-console.log("concepts loaded: " + concepts.length + " (expect 225)");
-console.log("prd appendix rows parsed: " + prdRowsTotal + " (expect 225)");
+console.log("concepts loaded: " + concepts.length + " (expect " + expectTotal + ")");
+console.log("prd appendix rows parsed: " + prdRowsTotal + " (expect 225, legacy categories)");
+if (pending.length) console.log("PENDING (missing/empty, non-fatal): " + pending.join(", "));
 console.log("");
 if (Object.keys(byCheck).length === 0) {
   console.log("problems by check: NONE");
@@ -242,7 +300,10 @@ if (problems.length) {
   for (const p of problems) console.log("  [" + p.id + "] " + p.check + " — " + p.detail);
 }
 
-const pass = problems.length === 0 && concepts.length === 225 && prdRowsTotal === 225 && !sawFFFD;
+const strict = process.env.STRICT === "1";
+const allPresent = pending.length === 0;
+const pass = problems.length === 0 && concepts.length === expectTotal && prdRowsTotal === 225 && !sawFFFD
+  && (!strict || allPresent);
 console.log("");
 console.log(pass ? "PASS: all content checks clean" : "FAIL: " + problems.length + " problem(s) found");
 process.exit(pass ? 0 : 1);

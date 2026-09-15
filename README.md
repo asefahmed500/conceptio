@@ -1,6 +1,6 @@
 # Backend Atlas
 
-A visual, searchable map of 225 backend engineering concepts across 9 categories — each with a why/how/when breakdown, subtopics, a Node.js code example, and an animated flow diagram. Built with Next.js 14 (static export), Tailwind CSS, and React Flow. `prd.md` is the product spec.
+A visual, searchable map of 275 engineering concepts across 11 categories — 225 backend concepts plus 25 React and 25 Next.js concepts — each with a why/how/when breakdown, subtopics, a code example, and an animated flow diagram. Built with Next.js 14 (static export), Tailwind CSS, and React Flow. `prd.md` is the product spec for the backend core.
 
 ## Run it
 
@@ -15,16 +15,18 @@ npm run typecheck
 
 ## What's inside
 
-- `app/page.tsx` — ties it together: category filter, search across all 225, and the detail panel state.
+- `app/page.tsx` — ties it together: category filter, search across all 275, and the detail panel state.
 - `app/layout.tsx` — Inter font and site metadata.
-- `components/Sidebar.tsx` — the 9-category navigation rail.
+- `components/Sidebar.tsx` — the 11-category navigation rail.
 - `components/ConceptCard.tsx` — grid card shown per concept, with its source cited.
 - `components/ConceptDetail.tsx` — full detail view: why/how/when, subtopics, code example.
 - `components/FlowDiagram.tsx` — renders each concept's steps as an animated React Flow chain (snake-wraps into rows for longer sequences).
-- `components/CodeBlock.tsx` — renders the Node.js code example.
+- `components/CodeBlock.tsx` — renders the code example with copy button and syntax highlighting.
 - `data/types.ts` — the `Concept` type.
 - `data/concepts.ts` — aggregator: exports `CATEGORIES` and `CONCEPTS`, merged from the per-category files.
-- `data/concepts/{core,web,db,auth,arch,cache,scale,ops,sysd}.ts` — 25 rich concepts per category (225 total).
+- `data/concepts/{core,web,db,auth,arch,cache,scale,ops,sysd}.ts` — 25 backend concepts per category (225 total).
+- `data/concepts/react.ts` — 25 React concepts (components, hooks, RSC, concurrent features) grounded in react.dev.
+- `data/concepts/nextjs.ts` — 25 Next.js App Router concepts (data fetching, Server Actions, caching layers, deployment) grounded in nextjs.org.
 
 ## Extending
 
@@ -41,7 +43,7 @@ Add a new concept object to the relevant category file in `data/concepts/`. The 
   when: string;      // when to use it (and when not to)
   ref: string;       // named source (docs, book, standard)
   subtopics: { name, detail }[]; // 3-5 subtopics
-  code: string;      // real-world Node.js example
+  code: string;      // real-world code example
   steps: string[];   // 3-5 steps drawn as the flow diagram
 }
 ```

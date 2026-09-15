@@ -7,6 +7,8 @@ import { CACHE } from "./concepts/cache";
 import { SCALE } from "./concepts/scale";
 import { OPS } from "./concepts/ops";
 import { SYSD } from "./concepts/sysd";
+import { REACT } from "./concepts/react";
+import { NEXTJS } from "./concepts/nextjs";
 import type { Category, Concept } from "./types";
 
 export type { Category, Concept, Subtopic } from "./types";
@@ -21,6 +23,8 @@ export const CATEGORIES: Category[] = [
   { id: "scale", name: "Scalability & Performance" },
   { id: "ops", name: "DevOps & Deployment" },
   { id: "sysd", name: "System Design" },
+  { id: "react", name: "React" },
+  { id: "nextjs", name: "Next.js" },
 ];
 
 export const CONCEPTS: Concept[] = [
@@ -33,4 +37,6 @@ export const CONCEPTS: Concept[] = [
   ...SCALE,
   ...OPS,
   ...SYSD,
+  ...REACT,
+  ...NEXTJS,
 ];

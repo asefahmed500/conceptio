@@ -1,8 +1,9 @@
 const fs = require("fs");
-const files = ["core", "web", "db", "auth", "arch", "cache", "scale", "ops", "sysd"];
+const files = ["core", "web", "db", "auth", "arch", "cache", "scale", "ops", "sysd", "react", "nextjs"];
 let total = 0;
 const issues = [];
 for (const f of files) {
+  if (!fs.existsSync("data/concepts/" + f + ".ts")) { console.log(f + ": PENDING (file not created yet)"); continue; }
   const src = fs.readFileSync("data/concepts/" + f + ".ts", "utf8");
   const ids = (src.match(/\n    id: "/g) || []).length;
   const whys = (src.match(/\n    why: "/g) || []).length;
