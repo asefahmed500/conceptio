@@ -1,0 +1,60 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html, body {
+  background: #F8F7F3;
+  color: #1B1A18;
+}
+
+::selection {
+  background: #2F4B9A22;
+}
+
+:focus-visible {
+  outline: 2px solid #2F4B9A;
+  outline-offset: 2px;
+  border-radius: 3px;
+}
+
+/* React Flow theming overrides */
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__edge-path {
+  stroke: #2F4B9A;
+  stroke-width: 1.6;
+}
+.react-flow__handle {
+  background: #2F4B9A;
+  width: 6px;
+  height: 6px;
+  border: none;
+}
+.react-flow__controls {
+  box-shadow: none;
+  border: 1px solid #E4E1D8;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.react-flow__controls-button {
+  background: #FFFFFF;
+  border-bottom: 1px solid #E4E1D8;
+}
+
+@keyframes dashmove {
+  from { stroke-dashoffset: 16; }
+  to { stroke-dashoffset: 0; }
+}
+.animated-edge path {
+  stroke-dasharray: 6 4;
+  animation: dashmove 0.6s linear infinite;
+}
+
+@keyframes panelIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.panel-enter {
+  animation: panelIn 0.22s ease-out;
+}
